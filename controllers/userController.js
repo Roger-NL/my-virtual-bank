@@ -1,5 +1,7 @@
+// controllers/userController.js
+
 const bcrypt = require('bcrypt');
-const { User } = require('../models');
+const { User, Transaction } = require('../models');
 
 // Função para gerar um IBAN fictício para fins de demonstração
 const generateIBAN = () => {
@@ -75,4 +77,32 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { register, login };
+// Função para realizar um depósito
+const deposit = async (req, res) => {
+  const { userId, valor } = req.body;
+
+  try {
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+
+    // Atualiza o saldo do usuário
+    user.saldo += parseFloat(valor);
+    await user.save();
+
+    // Cria uma nova transação de depósito
+    await Transaction.create({
+      tipo: 'depósito',
+      valor,
+      userId: user.id,
+    });
+
+    res.status(200).json({ message: 'Depósito realizado com sucesso', saldo: user.saldo });
+  } catch (error) {
+    console.error('Erro ao realizar depósito:', error);
+    res.status(500).json({ error: 'Erro ao realizar depósito. Tente novamente mais tarde.' });
+  }
+};
+
+module.exports = { register, login, deposit };
