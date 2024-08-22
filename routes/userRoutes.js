@@ -13,4 +13,10 @@ router.post('/login', userController.login);
 // Rota para realizar um depósito
 router.post('/deposit', userController.deposit);
 
+// Rota para realizar um saque
+router.post('/withdraw', userController.withdraw);
+
+// Rota para realizar uma transferência
+router.post('/transfer', userController.transfer);
+
 module.exports = router;

@@ -105,4 +105,80 @@ const deposit = async (req, res) => {
   }
 };
 
-module.exports = { register, login, deposit };
+// Função para realizar um saque
+const withdraw = async (req, res) => {
+  const { userId, valor } = req.body;
+
+  try {
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+
+    // Verifica se o usuário tem saldo suficiente
+    if (user.saldo < parseFloat(valor)) {
+      return res.status(400).json({ error: 'Saldo insuficiente' });
+    }
+
+    // Atualiza o saldo do usuário
+    user.saldo -= parseFloat(valor);
+    await user.save();
+
+    // Cria uma nova transação de saque
+    await Transaction.create({
+      tipo: 'saque',
+      valor,
+      userId: user.id,
+    });
+
+    res.status(200).json({ message: 'Saque realizado com sucesso', saldo: user.saldo });
+  } catch (error) {
+    console.error('Erro ao realizar saque:', error);
+    res.status(500).json({ error: 'Erro ao realizar saque. Tente novamente mais tarde.' });
+  }
+};
+
+// Função para realizar uma transferência
+const transfer = async (req, res) => {
+  const { userId, valor, destinoIban } = req.body;
+
+  try {
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+
+    // Verifica se o usuário tem saldo suficiente
+    if (user.saldo < parseFloat(valor)) {
+      return res.status(400).json({ error: 'Saldo insuficiente' });
+    }
+
+    const destinatario = await User.findOne({ where: { iban: destinoIban } });
+    if (!destinatario) {
+      return res.status(404).json({ error: 'Destinatário não encontrado' });
+    }
+
+    // Atualiza o saldo do usuário remetente
+    user.saldo -= parseFloat(valor);
+    await user.save();
+
+    // Atualiza o saldo do destinatário
+    destinatario.saldo += parseFloat(valor);
+    await destinatario.save();
+
+    // Cria uma nova transação de transferência
+    await Transaction.create({
+      tipo: 'transferência',
+      valor,
+      userId: user.id,
+      destinoIban: destinatario.iban,
+    });
+
+    res.status(200).json({ message: 'Transferência realizada com sucesso', saldo: user.saldo });
+  } catch (error) {
+    console.error('Erro ao realizar transferência:', error);
+    res.status(500).json({ error: 'Erro ao realizar transferência. Tente novamente mais tarde.' });
+  }
+};
+
+module.exports = { register, login, deposit, withdraw, transfer };
