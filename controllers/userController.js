@@ -1,5 +1,6 @@
 // controllers/userController.js
 
+const jwt = require('jsonwebtoken'); // Importa a biblioteca JWT
 const bcrypt = require('bcrypt');
 const { User, Transaction } = require('../models');
 
@@ -70,7 +71,15 @@ const login = async (req, res) => {
       return res.status(400).json({ error: 'Senha incorreta' });
     }
 
-    res.status(200).json({ message: 'Login bem-sucedido', usuario: user.usuario });
+    // Gera um token JWT com as informações do usuário
+    const token = jwt.sign(
+      { id: user.id, usuario: user.usuario, admin: user.admin },
+      process.env.JWT_SECRET, // A chave secreta usada para assinar o token (definida no .env)
+      { expiresIn: '2h' } // O token expira em 2 hora
+    );
+
+    // Retorna o token junto com a mensagem de sucesso e o usuário logado
+    res.status(200).json({ message: 'Login bem-sucedido', token });
   } catch (error) {
     console.error('Erro ao fazer login:', error);
     res.status(500).json({ error: 'Erro ao fazer login. Tente novamente mais tarde.' });
