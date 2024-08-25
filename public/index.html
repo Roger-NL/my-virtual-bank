@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Bank - Testes</title>
+</head>
+<body>
+
+    <h1>Testes do New Bank</h1>
+
+    <!-- Div para exibir mensagens -->
+    <div id="message"></div>
+
+    <!-- Formulário de Login -->
+    <div id="loginSection">
+        <h2>Login</h2>
+        <form id="loginForm">
+            <input type="text" id="loginUsuario" placeholder="Usuário" required><br>
+            <input type="password" id="loginSenha" placeholder="Senha" required><br>
+            <button type="submit">Login</button>
+        </form>
+
+        <!-- Link para mostrar o formulário de registro -->
+        <p>Não tem uma conta? <a href="#" id="showRegisterForm">Registre-se aqui</a></p>
+    </div>
+
+    <!-- Formulário de Registro (inicialmente oculto) -->
+    <div id="registerSection" style="display: none;">
+        <h2>Registrar Novo Usuário</h2>
+        <form id="registerForm">
+            <input type="text" id="nome" placeholder="Nome" required><br>
+            <input type="text" id="usuario" placeholder="Usuário" required><br>
+            <input type="password" id="senha" placeholder="Senha" required><br>
+
+            <!-- Seleção de País -->
+            <label for="pais">País:</label>
+            <select id="pais" required>
+                <option value="" disabled selected>Selecione o país</option>
+                <option value="brasil">Brasil</option>
+                <option value="europa">Europa</option>
+            </select><br>
+
+            <!-- Campo CPF (somente Brasil) -->
+            <div id="cpfDiv" style="display: none;">
+                <input type="text" id="cpf" placeholder="CPF"><br>
+            </div>
+
+            <!-- Campo BI (somente Europa) -->
+            <div id="biDiv" style="display: none;">
+                <input type="text" id="bi" placeholder="BI"><br>
+            </div>
+
+            <input type="date" id="dataNascimento" placeholder="Data de Nascimento" required><br>
+            <button type="submit">Registrar</button>
+        </form>
+
+        <!-- Link para voltar ao login -->
+        <p>Já tem uma conta? <a href="#" id="showLoginForm">Faça login aqui</a></p>
+    </div>
+
+    <!-- Dashboard e Funcionalidades (inicialmente ocultos) -->
+    <div id="dashboardSection" style="display: none;">
+        <h2>Dashboard</h2>
+
+        <!-- Botão para deslogar -->
+        <button id="logoutButton">Logout</button>
+
+        <!-- Extrato Bancário -->
+        <h2>Extrato Bancário</h2>
+        <div id="statements"></div>
+
+        <!-- Formulário de Depósito -->
+        <h2>Depósito</h2>
+        <form id="depositForm">
+            <input type="number" id="depositUserId" placeholder="ID do Usuário" required><br>
+            <input type="number" id="depositValor" placeholder="Valor" required><br>
+            <button type="submit">Depositar</button>
+        </form>
+
+        <!-- Formulário de Saque -->
+        <h2>Saque</h2>
+        <form id="withdrawForm">
+            <input type="number" id="withdrawUserId" placeholder="ID do Usuário" required><br>
+            <input type="number" id="withdrawValor" placeholder="Valor" required><br>
+            <button type="submit">Sacar</button>
+        </form>
+
+        <!-- Formulário de Transferência -->
+        <h2>Transferência</h2>
+        <form id="transferForm">
+            <input type="number" id="transferUserId" placeholder="ID do Usuário" required><br>
+            <input type="number" id="transferValor" placeholder="Valor" required><br>
+            <input type="text" id="destinoIban" placeholder="IBAN do Destinatário" required><br>
+            <button type="submit">Transferir</button>
+        </form>
+    </div>
+
+    <script>
+        // URL do servidor
+        const serverUrl = 'http://localhost:3000';
+
+        // Função para exibir mensagens
+        function showMessage(message) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerText = message;
+            setTimeout(() => {
+                messageDiv.innerText = '';
+            }, 5000); // Mensagem some após 5 segundos
+        }
+
+        // Mostra o campo correto com base na seleção do país
+        document.getElementById('pais').addEventListener('change', function() {
+            const pais = this.value;
+            document.getElementById('cpfDiv').style.display = pais === 'brasil' ? 'block' : 'none';
+            document.getElementById('biDiv').style.display = pais === 'europa' ? 'block' : 'none';
+        });
+
+        // Função para alternar entre os formulários de login e registro
+        document.getElementById('showRegisterForm').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('registerSection').style.display = 'block';
+        });
+
+        document.getElementById('showLoginForm').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('registerSection').style.display = 'none';
+            document.getElementById('loginSection').style.display = 'block';
+        });
+
+        // Função para registrar novo usuário
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const nome = document.getElementById('nome').value;
+            const usuario = document.getElementById('usuario').value;
+            const senha = document.getElementById('senha').value;
+            const pais = document.getElementById('pais').value;
+            const dataNascimento = document.getElementById('dataNascimento').value;
+
+            let cpf = '';
+            let bi = '';
+
+            if (pais === 'brasil') {
+                cpf = document.getElementById('cpf').value;
+            } else if (pais === 'europa') {
+                bi = document.getElementById('bi').value;
+            }
+
+            const response = await fetch(`${serverUrl}/api/users/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ nome, usuario, senha, cpf, bi, dataNascimento })
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                showMessage('Usuário registrado com sucesso!');
+                document.getElementById('registerSection').style.display = 'none';
+                document.getElementById('loginSection').style.display = 'block';
+            } else {
+                showMessage('Erro ao registrar usuário: ' + result.error);
+            }
+        });
+
+        // Função para fazer login
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const usuario = document.getElementById('loginUsuario').value;
+            const senha = document.getElementById('loginSenha').value;
+
+            const response = await fetch(`${serverUrl}/api/users/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ usuario, senha })
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                showMessage('Login bem-sucedido!');
+                localStorage.setItem('token', result.token); // Armazena o token para requisições futuras
+
+                // Oculta as seções de login e registro, e exibe o dashboard
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('registerSection').style.display = 'none';
+                document.getElementById('dashboardSection').style.display = 'block';
+
+                loadStatements(); // Carrega o extrato ao fazer login
+            } else {
+                showMessage('Erro ao fazer login: ' + result.error);
+            }
+        });
+
+        // Função para deslogar
+        document.getElementById('logoutButton').addEventListener('click', function() {
+            localStorage.removeItem('token'); // Remove o token
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('registerSection').style.display = 'none';
+            document.getElementById('dashboardSection').style.display = 'none';
+            showMessage('Logout realizado com sucesso!');
+        });
+
+        // Função para carregar o extrato bancário
+        async function loadStatements() {
+            const response = await fetch(`${serverUrl}/api/users/statements`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                document.getElementById('statements').innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>`;
+                showMessage('Extrato carregado com sucesso!');
+            } else {
+                showMessage('Erro ao carregar extrato: ' + result.error);
+            }
+        }
+
+        // Função para realizar depósito
+        document.getElementById('depositForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const userId = document.getElementById('depositUserId').value;
+            const valor = document.getElementById('depositValor').value;
+
+            const response = await fetch(`${serverUrl}/api/users/deposit`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({ userId, valor })
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                showMessage('Depósito realizado com sucesso!');
+            } else {
+                showMessage('Erro ao realizar depósito: ' + result.error);
+            }
+        });
+
+        // Função para realizar saque
+        document.getElementById('withdrawForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const userId = document.getElementById('withdrawUserId').value;
+            const valor = document.getElementById('withdrawValor').value;
+
+            const response = await fetch(`${serverUrl}/api/users/withdraw`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({ userId, valor })
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                showMessage('Saque realizado com sucesso!');
+            } else {
+                showMessage('Erro ao realizar saque: ' + result.error);
+            }
+        });
+
+        // Função para realizar transferência
+        document.getElementById('transferForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const userId = document.getElementById('transferUserId').value;
+            const valor = document.getElementById('transferValor').value;
+            const destinoIban = document.getElementById('destinoIban').value;
+
+            const response = await fetch(`${serverUrl}/api/users/transfer`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({ userId, valor, destinoIban })
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                showMessage('Transferência realizada com sucesso!');
+            } else {
+                showMessage('Erro ao realizar transferência: ' + result.error);
+            }
+        });
+
+        // Verifica se o usuário já está logado ao carregar a página
+        if (localStorage.getItem('token')) {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('registerSection').style.display = 'none';
+            document.getElementById('dashboardSection').style.display = 'block';
+            loadStatements(); // Carrega o extrato automaticamente se o usuário estiver logado
+        }
+
+    </script>
+
+</body>
+</html>

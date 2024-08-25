@@ -190,4 +190,34 @@ const transfer = async (req, res) => {
   }
 };
 
-module.exports = { register, login, deposit, withdraw, transfer };
+// Função para obter o extrato bancário do usuário
+const getStatements = async (req, res) => {
+  try {
+    const requestingUser = req.user;  // Usuário que está fazendo a requisição
+    const userId = req.query.userId || requestingUser.id;  // ID do usuário cujo extrato será visualizado
+
+    // Verifica se o usuário tentando acessar um extrato não é administrador e está tentando acessar o extrato de outro usuário
+    if (requestingUser.id !== parseInt(userId) && !requestingUser.admin) {
+      return res.status(403).json({ error: 'Acesso negado. Você não tem permissão para visualizar o extrato deste usuário.' });
+    }
+
+    // Verifica se o usuário existe
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'Usuário não encontrado.' });
+    }
+
+    // Buscar todas as transações do usuário
+    const transactions = await Transaction.findAll({
+      where: { userId },
+      order: [['createdAt', 'DESC']],  // Ordenar pela data da transação, da mais recente para a mais antiga
+    });
+
+    res.status(200).json(transactions);
+  } catch (error) {
+    console.error('Erro ao obter extrato bancário:', error);
+    res.status(500).json({ error: 'Erro ao obter extrato bancário. Tente novamente mais tarde.' });
+  }
+};
+
+module.exports = { register, login, deposit, withdraw, transfer, getStatements };
